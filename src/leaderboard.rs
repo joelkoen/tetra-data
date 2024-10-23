@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fmt};
+use std::{collections::BTreeSet, fmt};
 
 use anyhow::{bail, Result};
 use reqwest::Client;
@@ -13,18 +13,8 @@ use crate::{
 pub async fn update(pool: PgPool, client: Client) -> Result<()> {
     let mut tx = pool.begin().await?;
 
-    // let mut existing: BTreeMap<ObjectId, u32> = BTreeMap::new();
-    // for rec in query!("delete from league_leaderboard returning user_id, games_played")
-    //     .fetch_all(&mut *tx)
-    //     .await?
-    // {
-    //     existing.insert(
-    //         ObjectId(rec.user_id.try_into().unwrap()),
-    //         rec.games_played as u32,
-    //     );
-    // }
-
-    let mut data: BTreeMap<ObjectId, LeagueData> = BTreeMap::new();
+    let mut data = Vec::new();
+    let mut seen = BTreeSet::new();
     let mut after: Option<Prisecter> = None;
     loop {
         let request = client.get("https://ch.tetr.io/api/users/by/league?limit=100");
@@ -52,7 +42,9 @@ pub async fn update(pool: PgPool, client: Client) -> Result<()> {
 
         let len = entries.len();
         for entry in entries {
-            data.insert(entry.user_id, entry.league);
+            if seen.insert(entry.user_id) {
+                data.push((entry.user_id, entry.league));
+            }
         }
 
         if len < 10 {
@@ -62,7 +54,11 @@ pub async fn update(pool: PgPool, client: Client) -> Result<()> {
         dbg!(data.len());
     }
 
-    for (user_id, data) in data {
+    query!("update league set placement = null")
+        .execute(&mut *tx)
+        .await?;
+    for (placement, (user_id, data)) in data.into_iter().enumerate() {
+        let placement = placement + 1;
         let LeagueData {
             games_played,
             games_won,
@@ -79,14 +75,30 @@ pub async fn update(pool: PgPool, client: Client) -> Result<()> {
         } = data;
         query!(
             "
-                insert into league_leaderboard
-                    (user_id, games_played, games_won, rank, best_rank, tr, glicko, rd, gxe, decaying, apm, pps, vs)
+                insert into league
+                    (user_id, games_played, games_won, placement, rank, best_rank, tr, glicko, rd, gxe, decaying, apm, pps, vs, games_to_crawl)
                 values
-                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $2)
+                on conflict (user_id) do update set
+                    games_played = excluded.games_played,
+                    games_won = excluded.games_won,
+                    placement = excluded.placement,
+                    rank = excluded.rank,
+                    best_rank = excluded.best_rank,
+                    tr = excluded.tr,
+                    glicko = excluded.glicko,
+                    rd = excluded.rd,
+                    gxe = excluded.gxe,
+                    decaying = excluded.decaying,
+                    apm = excluded.apm,
+                    pps = excluded.pps,
+                    vs = excluded.vs,
+                    games_to_crawl = league.games_to_crawl + (excluded.games_played - league.games_played)
             ",
             &user_id.0,
             games_played as i32,
             games_won as i32,
+            placement as i32,
             rank as i16,
             best_rank as i16,
             tr,
