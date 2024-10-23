@@ -46,12 +46,11 @@ pub async fn update(pool: PgPool, client: Client) -> Result<()> {
                 data.push((entry.user_id, entry.league));
             }
         }
+        dbg!(data.len());
 
         if len < 10 {
             break;
         }
-
-        dbg!(data.len());
     }
 
     query!("update league set placement = null")

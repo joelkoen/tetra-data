@@ -7,6 +7,7 @@ use zstd::encode_all;
 
 mod api;
 mod leaderboard;
+mod league;
 mod model;
 
 #[tokio::main]
@@ -16,7 +17,10 @@ async fn main() -> Result<()> {
 
     let client = Client::new();
 
-    leaderboard::update(pool.clone(), client.clone()).await?;
+    loop {
+        league::crawl(pool.clone(), client.clone()).await?;
+    }
+    // leaderboard::update(pool.clone(), client.clone()).await?;
 
     // loop {
     //     let mut tx = pool.begin().await?;
