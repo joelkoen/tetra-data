@@ -6,9 +6,11 @@ use zstd::encode_all;
 pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
     loop {
         let mut tx = pool.begin().await?;
-        let id = match query_scalar!("select id from replay_queue order by priority asc nulls last")
-            .fetch_optional(&mut *tx)
-            .await?
+        let id = match query_scalar!(
+            "select id from replay_queue order by priority asc nulls last for update skip locked"
+        )
+        .fetch_optional(&mut *tx)
+        .await?
         {
             Some(x) => x,
             None => break,

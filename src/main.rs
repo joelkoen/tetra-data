@@ -1,4 +1,5 @@
 use anyhow::Result;
+use clap::{Parser, Subcommand};
 use reqwest::Client;
 use sqlx::PgPool;
 
@@ -8,19 +9,33 @@ mod league;
 mod model;
 mod replay;
 
+#[derive(Parser)]
+struct Cli {
+    #[clap(subcommand)]
+    command: Command,
+}
+
+#[derive(Subcommand, Debug, Clone)]
+enum Command {
+    FetchReplays,
+    FetchLeague,
+    CrawlLeague,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
+    let cli = Cli::parse();
+
     let pool = PgPool::connect(&dotenvy::var("DATABASE_URL")?).await?;
     sqlx::migrate!().run(&pool).await?;
 
     let client = Client::new();
 
-    // loop {
-    //     league::crawl(pool.clone(), client.clone()).await?;
-    // }
-    // leaderboard::update(pool.clone(), client.clone()).await?;
-
-    replay::fetch(pool, client).await?;
+    match cli.command {
+        Command::CrawlLeague => league::crawl(pool, client).await?,
+        Command::FetchLeague => leaderboard::update(pool, client).await?,
+        Command::FetchReplays => replay::fetch(pool, client).await?,
+    }
 
     Ok(())
 }
