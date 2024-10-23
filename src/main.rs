@@ -1,6 +1,7 @@
 use anyhow::{bail, Result};
 use reqwest::{Client, StatusCode};
 use sqlx::{query, query_scalar, PgPool};
+use zstd::encode_all;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,9 +27,10 @@ async fn main() -> Result<()> {
         println!("{url} {status}");
         if status == StatusCode::OK {
             let data = response.bytes().await?;
+            let data = encode_all(&*data, 19)?;
             query!(
                 "update replay_raw set data = $1, indexed = false where id = $2",
-                &*data,
+                data,
                 id
             )
             .execute(&mut *tx)
