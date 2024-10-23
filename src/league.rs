@@ -54,13 +54,19 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
     .await?;
     for replay in replays {
         let id = hex::decode(replay)?;
-        query!(
-            "insert into replay_queue (id, priority) values ($1, $2) on conflict do nothing",
-            id,
-            user.placement
-        )
-        .execute(&mut *tx)
-        .await?;
+        let exists = query!("select 1 as x from replay_raw where id = $1", id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .is_some();
+        if !exists {
+            query!(
+                "insert into replay_queue (id, priority) values ($1, $2) on conflict do nothing",
+                id,
+                user.placement
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
     }
     tx.commit().await?;
 
