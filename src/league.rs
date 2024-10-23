@@ -11,7 +11,7 @@ use crate::api::{ApiEntriesOf, ApiResponse};
 pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
     let mut tx = pool.begin().await?;
     let user =
-        query!("select user_id, placement, last_crawled from league where placement >= 1000 and games_to_crawl > 10 order by placement for update")
+        query!("select user_id, placement, last_crawled from league where placement <= 1000 and games_to_crawl > 10 order by placement for update")
             .fetch_one(&pool)
             .await?;
     let user_id = hex::encode(&user.user_id);
