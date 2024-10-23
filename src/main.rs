@@ -1,7 +1,13 @@
 use anyhow::{bail, Result};
+use api::{ApiEntriesOf, ApiResponse};
 use reqwest::{Client, StatusCode};
+use serde::{Deserialize, Serialize};
 use sqlx::{query, query_scalar, PgPool};
 use zstd::encode_all;
+
+mod api;
+mod leaderboard;
+mod model;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -9,6 +15,9 @@ async fn main() -> Result<()> {
     sqlx::migrate!().run(&pool).await?;
 
     let client = Client::new();
+
+    leaderboard::update(pool.clone(), client.clone()).await?;
+
     loop {
         let mut tx = pool.begin().await?;
         let id = match query_scalar!("select id from replay_raw where data is null")

@@ -1,3 +1,23 @@
+create table league_leaderboard (
+    user_id bytea primary key not null,
+
+    games_played integer not null,
+    games_won integer not null,
+
+    rank smallint not null,
+    best_rank smallint not null,
+
+    tr real not null,
+    glicko real not null,
+    rd real not null,
+    gxe real not null,
+    decaying boolean not null,
+    
+    apm real not null,
+    pps real not null,
+    vs real not null
+);
+
 create table replay_raw (
     id bytea primary key not null,
     data bytea,
