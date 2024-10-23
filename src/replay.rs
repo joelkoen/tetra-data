@@ -1,6 +1,9 @@
+use std::time::Duration;
+
 use anyhow::{bail, Result};
 use reqwest::{Client, StatusCode};
 use sqlx::{query, query_scalar, PgPool};
+use tokio::time::sleep;
 use zstd::encode_all;
 
 pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
@@ -39,6 +42,9 @@ pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
             )
             .execute(&mut *tx)
             .await?;
+        } else if status == StatusCode::TOO_MANY_REQUESTS {
+            sleep(Duration::from_secs(10)).await;
+            continue;
         } else if status != StatusCode::NOT_FOUND {
             bail!("unexpected status code: {status}")
         }
