@@ -1,9 +1,10 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde::Deserialize;
+use serde_json::json;
 use sqlx::{query, PgPool};
 
 use crate::api::{ApiEntriesOf, ApiResponse};
@@ -11,12 +12,18 @@ use crate::api::{ApiEntriesOf, ApiResponse};
 pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
     let mut tx = pool.begin().await?;
     let user =
-        query!("select user_id, placement, last_crawled from league where placement <= 10000 and games_to_crawl > 0 order by placement for update")
+        query!("select user_id, placement, last_crawled, games_to_crawl from league where placement <= 10000 and games_to_crawl > 0 order by placement for update")
             .fetch_one(&pool)
             .await?;
     let user_id = hex::encode(&user.user_id);
+    println!(
+        "crawling {} from {user_id} (#{})",
+        user.games_to_crawl,
+        user.placement.unwrap()
+    );
 
     let mut replays = BTreeSet::new();
+    let mut matches = BTreeMap::new();
     let mut after = user.last_crawled.unwrap_or_default();
     loop {
         let response: ApiEntriesOf<Record> =
@@ -34,11 +41,24 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
 
         let len = entries.len();
         for record in entries {
+            let id = hex::decode(record.replay_id)?;
             if !record.stub {
-                replays.insert(record.replay_id);
+                replays.insert(id.clone());
             }
+
+            let results = record.results;
+            matches.insert(
+                id,
+                (
+                    record.timestamp,
+                    json!({
+                        "leaderboard": results.leaderboard,
+                        "rounds": results.rounds,
+                        "league": record.extras.league
+                    }),
+                ),
+            );
         }
-        dbg!(replays.len());
 
         if len < 100 {
             break;
@@ -52,8 +72,8 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
     )
     .execute(&mut *tx)
     .await?;
-    for replay in replays {
-        let id = hex::decode(replay)?;
+    dbg!(replays.len(), matches.len());
+    for id in replays {
         let exists = query!("select 1 as x from replay_raw where id = $1", id)
             .fetch_optional(&mut *tx)
             .await?
@@ -68,6 +88,9 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
             .await?;
         }
     }
+    for (id, (timestamp, results)) in matches {
+        query!("insert into league_match (replay_id, timestamp, results) values ($1, $2, $3) on conflict do nothing",id, timestamp, results ).execute(&mut *tx).await?;
+    }
     tx.commit().await?;
 
     Ok(())
@@ -80,4 +103,17 @@ struct Record {
     replay_id: String,
     #[serde(rename = "ts")]
     timestamp: DateTime<Utc>,
+    results: RecordResults,
+    extras: RecordExtra,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct RecordResults {
+    leaderboard: serde_json::Value,
+    rounds: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct RecordExtra {
+    league: BTreeMap<String, serde_json::Value>,
 }
