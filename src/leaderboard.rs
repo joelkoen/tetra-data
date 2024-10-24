@@ -105,9 +105,9 @@ pub async fn update(pool: PgPool, client: Client) -> Result<()> {
             rd,
             gxe,
             decaying,
-            apm,
+            apm.unwrap_or_default(),
             pps,
-            vs
+            vs.unwrap_or_default()
         ).execute(&mut *tx).await?;
     }
     tx.commit().await?;
@@ -138,9 +138,9 @@ struct LeagueData {
     rd: f32,
     gxe: f32,
     decaying: bool,
-    apm: f32,
+    apm: Option<f32>,
     pps: f32,
-    vs: f32,
+    vs: Option<f32>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
