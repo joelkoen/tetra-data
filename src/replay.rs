@@ -21,14 +21,7 @@ pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
 
         let id_hex = hex::encode(&id);
         let url = format!("https://inoue.szy.lol/api/replay/{id_hex}");
-        let response = client
-            .get(&url)
-            .header(
-                "user-agent",
-                "joel replay scraper - discord @joelllllllllllllllllllllllllllll",
-            )
-            .send()
-            .await?;
+        let response = client.get(&url).send().await?;
 
         let status = response.status();
         println!("{url} {status}");

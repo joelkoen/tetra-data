@@ -12,14 +12,14 @@ use crate::api::{ApiEntriesOf, ApiResponse};
 pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
     let mut tx = pool.begin().await?;
     let user =
-        query!("select user_id, placement, last_crawled, games_to_crawl from league where placement <= 10000 and games_to_crawl > 0 order by placement for update")
+        query!("select user_id, placement, last_crawled, games_to_crawl from league where placement <= 2500 and games_to_crawl > 0 order by placement for update")
             .fetch_one(&pool)
             .await?;
     let user_id = hex::encode(&user.user_id);
+    let placement = user.placement.unwrap();
     println!(
-        "crawling {} from {user_id} (#{})",
-        user.games_to_crawl,
-        user.placement.unwrap()
+        "crawling {} from {user_id} (#{placement})",
+        user.games_to_crawl
     );
 
     let mut replays = BTreeSet::new();
@@ -42,7 +42,7 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
         let len = entries.len();
         for record in entries {
             let id = hex::decode(record.replay_id)?;
-            if !record.stub {
+            if !record.stub && placement <= 1000 {
                 replays.insert(id.clone());
             }
 

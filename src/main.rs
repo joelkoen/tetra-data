@@ -1,4 +1,7 @@
-use std::io::{stdout, Write};
+use std::{
+    io::{stdout, Write},
+    time::Duration,
+};
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -32,7 +35,10 @@ async fn main() -> Result<()> {
     let pool = PgPool::connect(&dotenvy::var("DATABASE_URL")?).await?;
     sqlx::migrate!().run(&pool).await?;
 
-    let client = Client::new();
+    let client = Client::builder()
+        .user_agent("discord @joelllllllllllllllllllllllllllll")
+        .timeout(Duration::from_secs(15))
+        .build()?;
 
     match cli.command {
         Command::CrawlLeague => loop {
