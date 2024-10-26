@@ -1,4 +1,7 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    time::Duration,
+};
 
 use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
@@ -6,14 +9,15 @@ use reqwest::Client;
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::{query, PgPool};
+use tokio::time::sleep;
 
 use crate::api::{ApiEntriesOf, ApiResponse};
 
 pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
     let mut tx = pool.begin().await?;
     let user =
-        query!("select user_id, placement, last_crawled, games_to_crawl from league where placement <= 2500 and games_to_crawl > 0 order by placement for update")
-            .fetch_one(&pool)
+        query!("select user_id, placement, last_crawled, games_to_crawl from league where placement is not null and games_to_crawl > 0 order by placement for update skip locked")
+            .fetch_one(&mut *tx)
             .await?;
     let user_id = hex::encode(&user.user_id);
     let placement = user.placement.unwrap();
@@ -92,6 +96,10 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
         query!("insert into league_match (replay_id, timestamp, results) values ($1, $2, $3) on conflict do nothing",id, timestamp, results ).execute(&mut *tx).await?;
     }
     tx.commit().await?;
+
+    if placement > 10000 {
+        sleep(Duration::from_secs(10)).await;
+    }
 
     Ok(())
 }
