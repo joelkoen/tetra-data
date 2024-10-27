@@ -46,7 +46,8 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
         let mut after = record.last_crawled.unwrap_or_default();
         loop {
             let response: EntriesOf<Record> =
-            client.get(format!("https://ch.tetr.io/api/users/{user_id}/records/league/recent?limit=100&before={}:0:0", after.timestamp_millis())).header("x-session-id","meow-2" ).send().await?.json().await?;
+            client.get(format!("https://ch.tetr.io/api/users/{user_id}/records/league/recent?limit=100&before={}:0:0", after.timestamp_millis())).header("x-session-id",format!("league-crawl-{user_id}")).send().await?.json().await?;
+            sleep(Duration::from_secs(1)).await;
 
             let mut entries = response.data.entries;
             entries.sort_by_key(|x| x.timestamp);
@@ -108,10 +109,6 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
             query!("insert into league_match (replay_id, timestamp, results) values ($1, $2, $3) on conflict do nothing",id, timestamp, results ).execute(&mut *tx).await?;
         }
         tx.commit().await?;
-
-        if placement > 10000 {
-            sleep(Duration::from_secs(2)).await;
-        }
     }
 
     Ok(())
