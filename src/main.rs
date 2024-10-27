@@ -41,9 +41,7 @@ async fn main() -> Result<()> {
         .build()?;
 
     match cli.command {
-        Command::CrawlLeague => loop {
-            league::crawl(pool.clone(), client.clone()).await?
-        },
+        Command::CrawlLeague => league::crawl(pool, client).await?,
         Command::FetchLeague => leaderboard::update(pool, client).await?,
         Command::FetchReplays => replay::fetch(pool, client).await?,
         Command::DumpReplays => {
