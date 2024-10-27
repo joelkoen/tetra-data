@@ -6,7 +6,7 @@ use serde::Deserialize;
 use sqlx::{query, PgPool};
 
 use crate::{
-    api::{ApiEntriesOf, ApiResponse},
+    api::EntriesOf,
     model::{ObjectId, Rank},
 };
 
@@ -23,16 +23,13 @@ pub async fn update(pool: PgPool, client: Client) -> Result<()> {
             None => request,
         };
 
-        let response: ApiEntriesOf<LeagueRecord> = request
+        let response: EntriesOf<LeagueRecord> = request
             .header("x-session-id", "meow")
             .send()
             .await?
             .json()
             .await?;
-        let entries = match response {
-            ApiResponse::Error { error } => bail!("{}", error.msg),
-            ApiResponse::Success { data, .. } => data.entries,
-        };
+        let entries = response.data.entries;
 
         if let Some(last) = entries.last() {
             let mut p = last.prisecter.clone();

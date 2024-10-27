@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use anyhow::{bail, Result};
+use anyhow::Result;
 use chrono::{DateTime, Utc};
 use reqwest::Client;
 use serde::Deserialize;
@@ -11,7 +11,7 @@ use serde_json::json;
 use sqlx::{query, PgPool};
 use tokio::time::sleep;
 
-use crate::api::{ApiEntriesOf, ApiResponse};
+use crate::api::EntriesOf;
 
 pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
     let mut tx = pool.begin().await?;
@@ -30,13 +30,10 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
     let mut matches = BTreeMap::new();
     let mut after = user.last_crawled.unwrap_or_default();
     loop {
-        let response: ApiEntriesOf<Record> =
+        let response: EntriesOf<Record> =
             client.get(format!("https://ch.tetr.io/api/users/{user_id}/records/league/recent?limit=100&before={}:0:0", after.timestamp_millis())).header("x-session-id","meow-2" ).send().await?.json().await?;
 
-        let mut entries = match response {
-            ApiResponse::Error { error } => bail!(error.msg),
-            ApiResponse::Success { data, .. } => data.entries,
-        };
+        let mut entries = response.data.entries;
         entries.sort_by_key(|x| x.timestamp);
 
         if let Some(last) = entries.last() {
