@@ -36,7 +36,6 @@ pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
             .execute(&mut *tx)
             .await?;
         } else if status == StatusCode::TOO_MANY_REQUESTS {
-            sleep(Duration::from_secs(10)).await;
             continue;
         } else if status != StatusCode::NOT_FOUND {
             bail!("unexpected status code: {status}")
@@ -45,6 +44,7 @@ pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
+        sleep(Duration::from_secs(10)).await;
     }
 
     Ok(())
