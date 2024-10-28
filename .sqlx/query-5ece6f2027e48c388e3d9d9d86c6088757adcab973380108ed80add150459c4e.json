@@ -1,0 +1,27 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                insert into league\n                    (user_id, games_played, games_won, placement, rank, best_rank, tr, glicko, rd, gxe, decaying, apm, pps, vs, games_to_crawl)\n                values\n                    ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $2)\n                on conflict (user_id) do update set\n                    games_played = excluded.games_played,\n                    games_won = excluded.games_won,\n                    placement = excluded.placement,\n                    rank = excluded.rank,\n                    best_rank = excluded.best_rank,\n                    tr = excluded.tr,\n                    glicko = excluded.glicko,\n                    rd = excluded.rd,\n                    gxe = excluded.gxe,\n                    decaying = excluded.decaying,\n                    apm = excluded.apm,\n                    pps = excluded.pps,\n                    vs = excluded.vs,\n                    games_to_crawl = league.games_to_crawl + (excluded.games_played - league.games_played)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Bytea",
+        "Int4",
+        "Int4",
+        "Int4",
+        "Int2",
+        "Int2",
+        "Float4",
+        "Float4",
+        "Float4",
+        "Float4",
+        "Bool",
+        "Float4",
+        "Float4",
+        "Float4"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5ece6f2027e48c388e3d9d9d86c6088757adcab973380108ed80add150459c4e"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update league set placement = null",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "7d627d8dcee7e7b2ff9454deb31596043e6c351a29976fb388a3e2f476274523"
+}

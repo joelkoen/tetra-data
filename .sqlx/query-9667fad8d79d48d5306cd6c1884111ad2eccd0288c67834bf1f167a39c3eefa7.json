@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select placement, games_to_crawl, last_crawled from league where user_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "placement",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "games_to_crawl",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "last_crawled",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "9667fad8d79d48d5306cd6c1884111ad2eccd0288c67834bf1f167a39c3eefa7"
+}

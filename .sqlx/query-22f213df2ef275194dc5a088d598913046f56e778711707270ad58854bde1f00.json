@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select id from replay_queue order by priority asc nulls last for update skip locked",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "22f213df2ef275194dc5a088d598913046f56e778711707270ad58854bde1f00"
+}

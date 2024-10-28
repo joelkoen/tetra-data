@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "update league set games_to_crawl = 0, last_crawled = $1 where user_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Bytea"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a5dfe63315b47aca32ae96c8eb47078167e20b2b2c5e9158664786138b2744c9"
+}

@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select 1 as x from replay_raw where id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "x",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Bytea"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d8f10200129a97952be76c5c32efb34b527d505b0146f141bd083fa31c9a410a"
+}

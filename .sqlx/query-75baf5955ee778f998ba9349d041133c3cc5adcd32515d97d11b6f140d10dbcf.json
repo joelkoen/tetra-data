@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "select user_id from league where placement <= 1000 and games_to_crawl > 0 order by placement for update skip locked",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Bytea"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "75baf5955ee778f998ba9349d041133c3cc5adcd32515d97d11b6f140d10dbcf"
+}
