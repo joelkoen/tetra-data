@@ -18,6 +18,12 @@ pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
         let mut tx = pool.begin().await?;
         let user =
         if let Some(user) = 
+            // recrawling replays
+            query_scalar!("select user_id from league where placement <= 1000 and games_to_crawl > 0 order by placement for update skip locked")
+                .fetch_optional(&mut *tx)
+                .await? {
+            user
+        } else if let Some(user) =
             // uncrawled users
             query_scalar!("select user_id from league where placement is not null and last_crawled is null order by placement for update skip locked")
                 .fetch_optional(&mut *tx)
