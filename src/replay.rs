@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::{bail, Result};
+use log::info;
 use reqwest::{Client, StatusCode};
 use sqlx::{query, query_scalar, PgPool};
 use tokio::time::sleep;
@@ -20,6 +21,7 @@ pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
         };
 
         let id_hex = hex::encode(&id);
+        info!("-> replay #{id_hex}");
         let url = format!("https://inoue.szy.lol/api/replay/{id_hex}");
         let response = client
             .get(&url)
@@ -28,10 +30,12 @@ pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
             .await?;
 
         let status = response.status();
-        println!("{url} {status}");
         if status == StatusCode::OK {
+            info!("downloading...");
             let data = response.bytes().await?;
+            info!("compressing...");
             let data = encode_all(&*data, 19)?;
+            info!("writing...");
             query!(
                 "insert into replay_raw (id, data) values ($1, $2)",
                 id,
@@ -48,6 +52,7 @@ pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
+        info!("waiting 10s");
         sleep(Duration::from_secs(10)).await;
     }
 

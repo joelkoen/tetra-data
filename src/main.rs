@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
+use env_logger::Env;
 use reqwest::Client;
 use sqlx::{query_scalar, PgPool};
 
@@ -31,6 +32,8 @@ enum Command {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
+
+    env_logger::init_from_env(Env::new().default_filter_or("info"));
 
     let pool = PgPool::connect(&dotenvy::var("DATABASE_URL")?).await?;
     sqlx::migrate!().run(&pool).await?;
