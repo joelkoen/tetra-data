@@ -10,10 +10,10 @@ use reqwest::Client;
 use sqlx::{query_scalar, PgPool};
 
 mod api;
-mod leaderboard;
-mod league;
+mod crawl_league;
+mod fetch_league;
+mod fetch_replays;
 mod model;
-mod replay;
 
 #[derive(Parser)]
 struct Cli {
@@ -23,9 +23,9 @@ struct Cli {
 
 #[derive(Subcommand, Debug, Clone)]
 enum Command {
-    FetchReplays,
     FetchLeague,
     CrawlLeague,
+    FetchReplays,
     DumpReplays,
 }
 
@@ -44,9 +44,9 @@ async fn main() -> Result<()> {
         .build()?;
 
     match cli.command {
-        Command::CrawlLeague => league::crawl(pool, client).await?,
-        Command::FetchLeague => leaderboard::update(pool, client).await?,
-        Command::FetchReplays => replay::fetch(pool, client).await?,
+        Command::FetchLeague => fetch_league::run(pool, client).await?,
+        Command::CrawlLeague => crawl_league::run(pool, client).await?,
+        Command::FetchReplays => fetch_replays::run(pool, client).await?,
         Command::DumpReplays => {
             let replays = query_scalar!("select data from replay_raw")
                 .fetch_all(&pool)

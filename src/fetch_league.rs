@@ -10,7 +10,7 @@ use crate::{
     model::{ObjectId, Rank},
 };
 
-pub async fn update(pool: PgPool, client: Client) -> Result<()> {
+pub async fn run(pool: PgPool, client: Client) -> Result<()> {
     let mut tx = pool.begin().await?;
 
     let mut data = Vec::new();

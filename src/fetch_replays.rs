@@ -7,7 +7,7 @@ use sqlx::{query, query_scalar, PgPool};
 use tokio::time::sleep;
 use zstd::encode_all;
 
-pub async fn fetch(pool: PgPool, client: Client) -> Result<()> {
+pub async fn run(pool: PgPool, client: Client) -> Result<()> {
     loop {
         let mut tx = pool.begin().await?;
         let id = match query_scalar!(

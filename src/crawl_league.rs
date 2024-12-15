@@ -13,7 +13,7 @@ use tokio::time::sleep;
 
 use crate::api::EntriesOf;
 
-pub async fn crawl(pool: PgPool, client: Client) -> Result<()> {
+pub async fn run(pool: PgPool, client: Client) -> Result<()> {
     loop {
         let mut tx = pool.begin().await?;
         let user =
