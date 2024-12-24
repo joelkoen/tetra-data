@@ -3,9 +3,9 @@ use std::{
     time::Duration,
 };
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use chrono::{DateTime, Utc};
-use reqwest::Client;
+use reqwest::{Client, StatusCode};
 use serde::Deserialize;
 use serde_json::json;
 use sqlx::{query, query_scalar, PgPool};
@@ -35,24 +35,41 @@ pub async fn run(pool: PgPool, client: Client) -> Result<()> {
                 .fetch_optional(&mut *tx)
                 .await? {
             user
+        } else if let Some(user) =
+            // users now unranked
+            query_scalar!("select user_id from league where games_to_crawl > 0 order by tr for update skip locked")
+                .fetch_optional(&mut *tx)
+                .await? {
+            user
         } else {
             break;
         };
 
         let record = query!("select placement, games_to_crawl, last_crawled from league where user_id = $1", user).fetch_one(&mut *tx).await?;
         let user_id = hex::encode(&user);
-        let placement = record.placement.unwrap();
+        let placement = record.placement;
         println!(
-            "crawling {} from {user_id} (#{placement})",
-            record.games_to_crawl
+            "crawling {} from {user_id} (#{})",
+            record.games_to_crawl,
+            placement.unwrap_or_default()
+
         );
 
         let mut replays = BTreeSet::new();
         let mut matches = BTreeMap::new();
         let mut after = record.last_crawled.unwrap_or_default();
         loop {
-            let response: EntriesOf<Record> =
-            client.get(format!("https://ch.tetr.io/api/users/{user_id}/records/league/recent?limit=100&before={}:0:0", after.timestamp_millis())).header("x-session-id",format!("league-crawl-{user_id}")).send().await?.json().await?;
+            let response = client.get(format!("https://ch.tetr.io/api/users/{user_id}/records/league/recent?limit=100&before={}:0:0", after.timestamp_millis())).header("x-session-id",format!("league-crawl-{user_id}")).send().await?;
+            match response.status() {
+                StatusCode::OK => (),
+                StatusCode::NOT_FOUND => {
+                    query!("delete from league where user_id = $1", &user).execute(&mut *tx).await?;
+                    break;
+                }
+                x => bail!("unexpected status: {x}")
+            }
+
+            let response: EntriesOf<Record> = response.json().await?;
             sleep(Duration::from_secs(1)).await;
 
             let mut entries = response.data.entries;
@@ -65,7 +82,7 @@ pub async fn run(pool: PgPool, client: Client) -> Result<()> {
             let len = entries.len();
             for record in entries {
                 let id = hex::decode(record.replay_id)?;
-                if !record.stub && placement <= 1000 {
+                if !record.stub && placement.is_some_and(|x| x <= 1000) {
                     replays.insert(id.clone());
                 }
 
