@@ -44,6 +44,8 @@ pub async fn run(pool: PgPool, client: Client) -> Result<()> {
             .execute(&mut *tx)
             .await?;
         } else if status == StatusCode::TOO_MANY_REQUESTS {
+            info!("429 - waiting 10s");
+            sleep(Duration::from_secs(10)).await;
             continue;
         } else if status != StatusCode::NOT_FOUND {
             bail!("unexpected status code: {status}")
