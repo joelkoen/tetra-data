@@ -103,7 +103,7 @@ pub async fn run(pool: PgPool, client: Client) -> Result<()> {
             gxe,
             decaying,
             apm.unwrap_or_default(),
-            pps,
+            pps.unwrap_or_default(),
             vs.unwrap_or_default()
         ).execute(&mut *tx).await?;
     }
@@ -136,7 +136,7 @@ struct LeagueData {
     gxe: f32,
     decaying: bool,
     apm: Option<f32>,
-    pps: f32,
+    pps: Option<f32>,
     vs: Option<f32>,
 }
 
