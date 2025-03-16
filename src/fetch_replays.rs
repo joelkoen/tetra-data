@@ -54,8 +54,8 @@ pub async fn run(pool: PgPool, client: Client) -> Result<()> {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
-        info!("waiting 10s");
-        sleep(Duration::from_secs(10)).await;
+        info!("waiting 3s");
+        sleep(Duration::from_secs(3)).await;
     }
 
     Ok(())
